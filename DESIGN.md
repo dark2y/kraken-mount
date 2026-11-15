@@ -61,7 +61,10 @@ Invalid values are logged and replaced by the default. The web UI edits the same
   `kraken_zero.dat` (an AMPRDAT3 volume in the cache: one 64 KiB header page + 256 KiB zeros,
   written only when a hole is packed; ng's pkg mode opens packs 1 and up as AMPRDAT3 volumes,
   `ampr-sys` `rt/pack/pkg.rs` `build_pack_path_pkg`). A file whose holes do not start and end on
-  its 256 KiB block grid is extracted loose instead (logged with the title id and path).
+  its 256 KiB block grid is extracted loose instead. The same per-file fallback applies to any
+  entry the index cannot represent, including a short compressed block extending past its logical
+  end. The reason, title id, path and extracted size are logged; other entries remain packed.
+  Extraction can still fail if the underlying data is corrupt.
   The dir itself is never deleted: `/system_ex/app/<TID>` is a nullfs of it.
 - `/app0` is writable, so a game may write into its cache (pkg) or its dump folder (folder, also on
   USB). `.built` (written before `.done`) lists what the build created; a rebuild removes only those

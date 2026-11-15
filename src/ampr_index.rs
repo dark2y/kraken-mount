@@ -261,10 +261,10 @@ fn plan(path: &str, size: u64, blocks: &[Chunk], vol_size: u64) -> Result<Plan> 
     Ok(Plan { chunks, flags: FILE_PACKED, zeros })
 }
 
-/// Whether `chunks` can be packed as `plan` packs them (the 256 KiB block grid): a file whose
-/// holes do not start and end on that grid is extracted instead (cache.rs).
-pub fn packable(size: u64, chunks: &[Chunk]) -> bool {
-    plan("", size, chunks, KRAKEN_OFFSET_LIMIT - 1).is_ok()
+/// Check whether a file can be represented on the 256 KiB block grid. The caller extracts only
+/// that file when it cannot be indexed, retaining the reason for the cache log.
+pub fn check_packable(path: &str, size: u64, chunks: &[Chunk]) -> Result<()> {
+    plan(path, size, chunks, KRAKEN_OFFSET_LIMIT - 1).map(|_| ())
 }
 
 /// One pack record: `file_size` bytes, the last `payload` of them the payload, named `name`.

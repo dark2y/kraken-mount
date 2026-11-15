@@ -691,21 +691,19 @@ fn build_inner(src: &Source, s: &Settings, before: &HashSet<PathBuf>) -> Result<
             if LIB_DIRS.iter().any(|d| lower.starts_with(d)) {
                 continue;
             }
-            // A file with sparse holes stays in the pkg: its holes are zero chunks (ampr_index).
-            // ponytail: one whose holes do not start and end on its 256 KiB block grid cannot be
-            // indexed and is extracted whole to the internal SSD (its size, holes included).
+            // ponytail: entries that do not fit the index's block grid are extracted individually;
+            // the rest of the pkg stays packed. Extraction may still fail on corrupt input.
             let packed = if extracted(e.path) {
                 None
-            } else if p.has_sparse(&e) {
-                let c = chunks(p, &e)?;
-                if ampr_index::packable(e.size, &c) {
-                    Some(c)
-                } else {
-                    log!("{}: {}: sparse holes off the 256 KiB grid, extracting {} bytes", src.title_id, e.path, e.size);
-                    None
-                }
             } else {
-                Some(chunks(p, &e)?)
+                let c = chunks(p, &e)?;
+                match ampr_index::check_packable(e.path, e.size, &c) {
+                    Ok(()) => Some(c),
+                    Err(reason) => {
+                        log!("{}: {}: extracting {} bytes", src.title_id, reason, e.size);
+                        None
+                    }
+                }
             };
             if packed.is_none() {
                 extract(p, io, &e, &dir.join(e.path), &mut buf)?;
