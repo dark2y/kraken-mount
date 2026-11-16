@@ -282,6 +282,45 @@ fn add_bits(mode: u32, want: u32) -> Option<u32> {
     (mode & want != want).then_some(mode | want)
 }
 
+/// Resolve the only recognized Playden roots, refusing ambiguous or inaccessible candidates.
+fn playden_roots() -> Result<Vec<PathBuf>> {
+    let base = Path::new("/data/homebrew");
+    let entries = match fs::read_dir(base) {
+        Ok(entries) => entries,
+        Err(e) if e.kind() == ErrorKind::NotFound => return Ok(Vec::new()),
+        Err(e) => return Err(e),
+    };
+    let mut roots = Vec::new();
+    for entry in entries {
+        let entry = entry?;
+        let name = entry.file_name();
+        let name = name.to_string_lossy();
+        let bytes = name.as_bytes();
+        if name != "FAKE77031" && !(bytes.len() == 9 && &bytes[..6] == b"FAKE78"
+            && bytes[6..].iter().all(u8::is_ascii_digit)) { continue; }
+        let path = entry.path();
+        let metadata = fs::symlink_metadata(&path)?;
+        if !metadata.is_dir() || fs::canonicalize(&path)? != path {
+            return Err(Error::new(ErrorKind::InvalidData, format!("ambiguous Playden root {}", path.display())));
+        }
+        roots.push(path);
+    }
+    Ok(roots)
+}
+
+/// Detect aliases of a protected root (e.g. a nullfs view) when the filesystem exposes
+/// the same device and inode. This cannot identify independently mounted subtrees or hard links.
+fn root_alias(path: &Path, roots: &[PathBuf]) -> bool {
+    use std::os::unix::fs::MetadataExt;
+    if roots.is_empty() { return false; }
+    let ids: Vec<_> = roots.iter().filter_map(|r| fs::metadata(r).ok().map(|m| (m.dev(), m.ino()))).collect();
+    if ids.len() != roots.len() { return true; }
+    path.ancestors().any(|p| match fs::metadata(p) {
+        Ok(m) => ids.contains(&(m.dev(), m.ino())),
+        Err(_) => true,
+    })
+}
+
 /// fix_access's tally: modes fixed, chmods failed and the first failure.
 #[derive(Default)]
 struct Access {
@@ -305,15 +344,37 @@ impl Access {
         }
     }
 
-    /// `path` itself (lstat), then everything under it when it is a dir.
-    fn tree(&mut self, path: &Path, dirs: u32, files: u32) {
-        let Ok(m) = fs::symlink_metadata(path) else { return };
-        self.entry(path, &m, dirs, files);
-        if m.is_dir() {
-            for (p, m) in walk(path) {
+    /// Skip protected roots and ancestors; prune protected subtrees before descent.
+    /// Canonicalize each entry to recognize aliases through intermediate symlinks.
+    fn tree(&mut self, path: &Path, dirs: u32, files: u32, roots: &[PathBuf]) {
+        use std::os::unix::fs::MetadataExt;
+        let Ok(first) = fs::symlink_metadata(path) else { return };
+        let device = first.dev();
+        let mut todo = vec![(path.to_path_buf(), first)];
+        while let Some((p, m)) = todo.pop() {
+            if m.file_type().is_symlink() || m.dev() != device { continue; }
+            let Ok(canonical) = fs::canonicalize(&p) else { continue };
+            if roots.iter().any(|root| canonical.starts_with(root)) || root_alias(&canonical, roots) { continue; }
+            if !roots.iter().any(|root| root.starts_with(&canonical)) {
                 self.entry(&p, &m, dirs, files);
             }
+            if m.is_dir() {
+                if let Ok(entries) = fs::read_dir(&p) {
+                    for e in entries.flatten() {
+                        if let Ok(m) = fs::symlink_metadata(e.path()) { todo.push((e.path(), m)); }
+                    }
+                }
+            }
         }
+    }
+
+    /// One entry, with the same alias and overlap checks as a recursive walk.
+    fn single(&mut self, path: &Path, dirs: u32, files: u32, roots: &[PathBuf]) {
+        let Ok(m) = fs::symlink_metadata(path) else { return };
+        if m.file_type().is_symlink() { return; }
+        let Ok(canonical) = fs::canonicalize(path) else { return };
+        if roots.iter().any(|root| canonical.starts_with(root) || root.starts_with(&canonical)) || root_alias(&canonical, roots) { return; }
+        self.entry(path, &m, dirs, files);
     }
 }
 
@@ -327,19 +388,19 @@ impl Access {
 /// title); a 150k-file folder costs that walk, and files added later wait for the next run.
 pub fn fix_access(src: &Source) {
     let mut a = Access::default();
-    a.tree(&dir(&src.title_id), 0o777, 0o444);
+    let roots = match playden_roots() {
+        Ok(roots) => roots,
+        Err(e) => { log!("{}: access: cannot validate Playden roots: {e}", src.title_id); return; }
+    };
+    a.tree(&dir(&src.title_id), 0o777, 0o444, &roots);
     match src.kind {
         Kind::Pkg => {
-            if let Ok(m) = fs::symlink_metadata(&src.path) {
-                a.entry(&src.path, &m, 0, 0o444);
-            }
+            a.single(&src.path, 0, 0o444, &roots);
             if let Some(parent) = src.path.parent() {
-                if let Ok(m) = fs::symlink_metadata(parent) {
-                    a.entry(parent, &m, 0o555, 0);
-                }
+                a.single(parent, 0o555, 0, &roots);
             }
         }
-        Kind::Folder(_) => a.tree(&src.path, 0o555, 0o444),
+        Kind::Folder(_) => a.tree(&src.path, 0o555, 0o444, &roots),
     }
     if a.fixed + a.failed == 0 {
         return;

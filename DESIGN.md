@@ -19,6 +19,7 @@ and installed into `/data/krakenmount/ampr/` at start.
 | Path | What |
 |---|---|
 | `/data/krakenmount/config.toml` | settings (created with defaults on first start) |
+| `/data/krakenmount/playden-manual.json` | loopback compatibility API's explicit Playden sources and suppressed paths; atomic temp, fsync and rename |
 | `/data/krakenmount/caches/<TID>/` | per-game cache |
 | `/data/krakenmount/ampr.bundled` | `<version> <len> <crc32>` of the `libSceAmpr.sprx` we last wrote, bundled or downloaded (v0.4.0 builds wrote `<len> <crc32>`: ours, version unknown; outside `ampr/`, whose files all go into fakelib) |
 | `/data/krakenmount/ampr/` | ampr-emu-ng files (`libSceAmpr.sprx`, ...), copied on top of every game's `fakelib/` in its cache (chmod 0777 at start; a `libkernel.sprx` there is never copied and logs a warning) |
@@ -103,14 +104,23 @@ Invalid values are logged and replaced by the default. The web UI edits the same
   the file name changed, `.done` mtime now, extracted files and indexes kept (ng checks the pkg's
   size only); folder = new stamp, `.done` mtime now. Anything else is Stale (a cache stamped before `pkg_id`/`folder_id`
   existed rebuilds once when its game moves).
-- Access (`fix_access`, once per run per title from `main.rs`; never fails): games and system
-  services (save data, trophies) read the game's files with another uid than the payload. It only
-  adds bits, chmods only when some are missing, lstats and never follows symlinks, skips entries
-  that are neither file nor dir: the cache dir recursively (dirs 0777, `/app0` is writable; files
-  +0444); pkg = the .pkg +0444 and its folder +0555 (the `/app0/kraken` nullfs: ng falls back to
-  LZ4 mode when it cannot open the .pkg); folder = the game folder recursively (dirs +0555, files
-  +0444). chmod failures (exFAT USB, read-only) are counted: one log line per title with the title
-  id, modes fixed, failures and the first failed path and error (none when nothing changed).
+- Access (`fix_access`, once per run per title): restores the original additive repair: cache
+  dirs 0777/files +0444, pkg +0444 and its parent +0555, folder tree dirs +0555/files +0444.
+  Symlinks are not followed as entries. Before repair, enumerate `/data/homebrew/FAKE77031` and
+  `FAKE78[0-9]{3}`; each existing candidate must be a real directory whose canonical path is exactly
+  that path. Validation errors fail closed for that title, including cache repair. Canonicalize each
+  visited entry so aliases through symlinked ancestors cannot bypass the exclusion. A matching
+  device/inode on an ancestor also detects root aliases when the filesystem exposes that identity. Protected roots
+  and descendants are skipped and never descended into; their ancestors are not chmodded, but tree
+  walks continue through them to unrelated siblings. Pkg parent repair uses the same overlap rule.
+  Walks do not cross filesystem device boundaries. Errors and fixes are logged per title as before.
+  This is not a security boundary against concurrent path replacement, hard links, or same-device
+  bind/nullfs aliases: canonical paths and device numbers cannot prove object identity across mounts.
+  If PS5 resolves `/data` to `/user/data`, exact-path validation fails closed and disables the
+  repair for every title while such candidates exist; this has not been verified on console.
+  Root changes during a pass can race enumeration and chmod. Other cache build and registration
+  operations are not secured by this permission-repair guard.
+
 - Purge (settings): delete caches of titles not in the library (`register::unmount_title` first;
   a dir whose unmount fails is skipped and logged), empty and rebuild the rest.
 
@@ -123,8 +133,7 @@ copy; a file put there by hand is kept; see Auto-update below), ampr chmod, web 
 SMP `sm_kstuff_is_loaded`) and no `shadowmountplus.elf` process runs, then the launch watcher thread. Loop every `scan_interval_seconds` or on
 wake: reload config, scan, then for each game: freshness check, build if stale or forced,
 register (once per run, and after every rebuild), status `ready`. Right before the register (or the
-mount-only path below), once per run per title, `cache::fix_access` opens up the cache and the
-source for the game and the system services (it only adds missing bits); a relinked moved game
+mount-only path below), once per run per title, `cache::fix_access` repairs source and cache access with the Playden exclusions above; a relinked moved game
 gets it right after `cache::relink`. A game whose cache is fresh and
 which is already registered (`register::is_registered`) is not re-registered: only `register::mount`
 redoes the missing app0 nullfs (gone after a reboot); for such a pkg the scan reads title id/name from
@@ -217,7 +226,7 @@ pub struct Source { pub path: std::path::PathBuf, pub kind: Kind, pub title_id: 
   pub version: String, /* param.json contentVersion, or empty */
   pub drive: String, pub size: u64 /* pkg file size; folder: 0 */, pub backport: Option<std::path::PathBuf> }
 pub struct ScanResult { pub games: Vec<Source>, pub duplicates: Vec<Source>, pub errors: Vec<(std::path::PathBuf, String)> }
-pub fn scan(roots: &[String], backports: bool) -> ScanResult;  // memoizes pkg param reads by (path, size, mtime)
+pub fn scan(roots: &[String], backports: bool, manual: &[String], excluded: &[String]) -> ScanResult; // memoizes pkg param reads by (path, size, mtime)
 pub fn parse_param(json: &[u8]) -> std::io::Result<(String, String, String)>; // (title_id, title_name, version)
 pub fn valid_tid(t: &str) -> bool;
 
@@ -240,7 +249,7 @@ pub fn size(tid: &str) -> u64;                                      // bytes, re
 pub fn du(path: &std::path::Path) -> u64;                           // file bytes, recursive; no symlink traversal
 pub fn total_size() -> u64;
 pub fn purge(keep: &[String]) -> std::io::Result<()>;               // delete caches/<TID> not in keep; empty the kept ones
-pub fn fix_access(src: &Source);                                    // add missing read/exec bits, see Cache "Access"
+pub fn fix_access(src: &Source);                                    // additive repair with Playden exclusions; see Cache "Access"
 
 // register.rs
 pub fn register(title_id: &str, app0: &std::path::Path, sce_sys: &std::path::Path, backport: Option<&std::path::Path>) -> std::io::Result<()>;
@@ -291,6 +300,52 @@ pub fn https_get(url: &str, max: usize) -> std::io::Result<Vec<u8>>;
   `/user/appmeta/<TID>/`, then (pkg) from the .pkg itself via `cache::pkg_file`; 404 when none. Keyed by title id; the UI must re-request when the title id appears.
 - `GET /file/data/...` only with `debug=1`. `POST /api/quit`: loopback with an empty body (a newer copy
   taking over) or body `shutdown` from any host (the UI's Shut down, toast "Kraken Mount stopped"); 409 while a game runs.
+
+## Playden compatibility API (`src/compat_api.rs`)
+A separate HTTP listener binds **only `127.0.0.1:10101`**, not the LAN. If occupied it retries;
+ it never sends quit to, replaces, or impersonates the existing port owner. The normal 8097 UI is
+independent. This is a deliberately limited ShadowMount v1 adapter, not the complete SMP API and
+not a claim of Playden launch compatibility. It uses the same bounded HTTP parser as the UI, accepts
+POST JSON objects, and returns JSON with numeric `status` (positive errno on error):
+
+- `/api/v1/version` reports API 1, a **Kraken-Mount** version string in `shadowmount_version`, and
+  only the implemented capabilities. `/api/v1/games` returns the last scan with the Playden-required
+  `title_id`, `path`, `runtime_path`, `source_type`, `managed`, `installed`, `mounted`, and
+  `source_available` fields. Duplicates are included so a collision is visible. `ready` is Kraken's
+  registration/mount status, not an independent live app.db or mount verification. An initial scan,
+  a readable manual file and a scan without errors are required; otherwise the API returns EBUSY
+  instead of incorrectly reporting an absent title. Registration is asynchronous and remains paused
+  while the launch watcher reports a running game.
+- `/api/v1/manual/list`, `/manual/add`, and `/manual/remove` manage **only exact
+  `/data/homebrew/FAKE78xxx` paths**. Add requires a real folder, eboot and matching param title id;
+  a known different-path title collision is rejected. Entries are scanned even with custom roots,
+  without scanning unrelated siblings. Removal also suppresses that exact path in default/custom
+  roots until a later successful add; existing aliases resolving to the same directory are also
+  skipped. Resolution errors make inventory unavailable rather than silently implying absence.
+  This avoids rediscovery while Playden retires the folder; it does not delete or move anything. The serialized list and exclusions persist across restarts;
+  unreadable/malformed state fails closed and requires correction and restart. Add/remove try-lock
+  the scanner work mutex and return EBUSY during a pass. `/api/v1/scan` wakes the scan loop.
+- `/api/v1/games/uninstall` is intentionally stricter than SMP: only FAKE78 ids; no running game or
+  scan/build; manual entry removed; no known other-path collision; a current ready library row for
+  that source; exact source must be absent (not inaccessible); and a built folder-cache stamp must
+  name that exact source. Once a scan has dropped the row, this endpoint refuses the request. It unmounts the title
+  without force before calling the platform uninstall. It does **not** call the UI's destructive
+  delete route, delete the source, or delete the cache. Busy, unknown, collision, unmount and platform
+  failures return nonzero status. A cache stamp is not cryptographic proof that no external tool
+  replaced a native registration; do not use this adapter to manage foreign titles. Playden's local
+  removal flow currently retires its owned source itself and uses its separate title-remover helper.
+- No source-delete, settings, mount or other SMP endpoints are implemented. No authentication is
+  added: any console-local client able to reach the listener can invoke this narrow API.
+
+**Launch uncertainty:** Playden's local README reports testing with SMP 1.7beta2 and
+1.7-beta5fix1, while its runtime's directory-boundary guidance says beta4 and later can make
+`/data` unusable and recommends beta2. Comparing upstream tags, beta2's `sm_fakelib.c` has no
+sandbox `/data` mount call; beta4 and beta5 mount `/data`. Kraken also mounts `/data` and overlays a
+writable `/app0` (`launch.rs`), so its launch behavior is not established by the API adapter.
+Playden captures `/app0` source identity before its data grant and validates its directory
+boundaries after that grant; matching visible paths is insufficient. No Playden-specific mount
+profile is selected without console evidence: test launcher and game start, identity, grant,
+read/write boundaries, updates and uninstall on the intended firmware before claiming support.
 
 ## Self copy and start on open (as Dump Forge)
 `ps5/build.sh` builds twice: stage 1, then stage 2 (`--features self-copy`, env `KRAKEN_SELF_ELF`) embedding
