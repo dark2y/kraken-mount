@@ -31,6 +31,9 @@ pub struct Game {
 pub struct State {
     /// The last scan: library games first, then duplicates.
     pub games: Mutex<Vec<Game>>,
+    pub manual: Mutex<crate::compat_api::ManualSources>,
+    pub manual_valid: bool,
+    pub inventory_ready: AtomicBool,
     pub settings: Mutex<Settings>,
     /// Title ids to rebuild on the next scan.
     pub forced: Mutex<HashSet<String>>,
@@ -53,8 +56,14 @@ pub struct State {
 
 impl State {
     pub fn new(settings: Settings) -> State {
+        let loaded = crate::compat_api::load_manual();
+        if let Err(e) = &loaded { log!("compat: {e}; inventory unavailable until corrected and restarted"); }
+        let manual_valid = loaded.is_ok();
         State {
             games: Mutex::new(Vec::new()),
+            manual: Mutex::new(loaded.unwrap_or_default()),
+            manual_valid,
+            inventory_ready: AtomicBool::new(false),
             settings: Mutex::new(settings),
             forced: Mutex::new(HashSet::new()),
             purge: AtomicBool::new(false),
@@ -158,12 +167,12 @@ pub fn serve(state: Arc<State>, listener: TcpListener) {
     for conn in listener.incoming().flatten() {
         let state = state.clone();
         std::thread::spawn(move || {
-            let _ = handle(&state, conn);
+            let _ = handle(&state, conn, false);
         });
     }
 }
 
-struct Reply {
+pub(crate) struct Reply {
     code: u16,
     ctype: &'static str,
     body: Vec<u8>,
@@ -171,7 +180,7 @@ struct Reply {
     cache: &'static str,
 }
 
-fn reply(code: u16, ctype: &'static str, body: impl Into<Vec<u8>>) -> Reply {
+pub(crate) fn reply(code: u16, ctype: &'static str, body: impl Into<Vec<u8>>) -> Reply {
     Reply { code, ctype, body: body.into(), cache: "no-store" }
 }
 
@@ -195,12 +204,12 @@ fn not_found() -> Reply {
     reply(404, "text/plain", "not found")
 }
 
-fn handle(state: &State, mut conn: TcpStream) -> std::io::Result<()> {
+pub(crate) fn handle(state: &State, mut conn: TcpStream, compat: bool) -> std::io::Result<()> {
     conn.set_read_timeout(Some(Duration::from_secs(5)))?;
     conn.set_write_timeout(Some(Duration::from_secs(10)))?;
     let loopback = conn.peer_addr().map(|a| a.ip().is_loopback()).unwrap_or(false);
     let r = match read_request(&mut conn)? {
-        Ok((head, body)) => route(state, &head, &body, loopback),
+        Ok((head, body)) => if compat { crate::compat_api::route(state, &head, &body) } else { route(state, &head, &body, loopback) },
         Err(code) => reply(code, "text/plain", "bad or too large request"),
     };
     let reason = match r.code {

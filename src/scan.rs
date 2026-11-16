@@ -139,13 +139,30 @@ fn scan_error(result: &mut ScanResult, path: PathBuf, error: impl std::fmt::Disp
 /// Last logged scan error per path.
 static LOGGED: OnceLock<Mutex<HashMap<PathBuf, String>>> = OnceLock::new();
 
-pub fn scan(roots: &[String], backports: bool) -> ScanResult {
+pub fn scan(roots: &[String], backports: bool, manual: &[String], excluded: &[String]) -> ScanResult {
     let mut result = ScanResult { games: Vec::new(), duplicates: Vec::new(), errors: Vec::new() };
     // Title id -> its index in `result.games`.
     let mut seen: HashMap<String, usize> = HashMap::new();
     let cached = cached_pkgs();
-    for root in roots {
+    // A configured root may be a symlink or contain `..`; do not rediscover an excluded
+    // Playden source through another spelling of the same existing directory.
+    let mut excluded_real = HashSet::new();
+    for path in excluded {
+        match fs::canonicalize(path) {
+            Ok(path) => { excluded_real.insert(path); }
+            Err(e) if e.kind() == ErrorKind::NotFound => {}
+            Err(e) => scan_error(&mut result, PathBuf::from(path), e),
+        }
+    }
+    let mut all_roots = roots.to_vec();
+    for path in manual {
+        if let Some(parent) = Path::new(path).parent().and_then(Path::to_str) {
+            if !all_roots.iter().any(|r| r == parent) { all_roots.push(parent.to_owned()); }
+        }
+    }
+    for root in &all_roots {
         let root = Path::new(root);
+        let scan_root = roots.iter().any(|r| Path::new(r) == root);
         let entries = match fs::read_dir(root) {
             Ok(entries) => entries,
             Err(e) if e.kind() == ErrorKind::NotFound => continue,
@@ -159,7 +176,19 @@ pub fn scan(roots: &[String], backports: bool) -> ScanResult {
             match entry {
                 // Dot entries (macOS ._X.pkg AppleDouble files) are skipped, as in SMP.
                 Ok(entry) if entry.file_name().to_string_lossy().starts_with('.') => {}
-                Ok(entry) => paths.push(entry.path()),
+                Ok(entry) => {
+                    let path = entry.path();
+                    if excluded.iter().any(|p| Path::new(p) == path) { continue; }
+                    if !scan_root && !manual.iter().any(|p| Path::new(p) == path) { continue; }
+                    if !excluded_real.is_empty() {
+                        match fs::canonicalize(&path) {
+                            Ok(real) if excluded_real.contains(&real) => continue,
+                            Ok(_) => {}
+                            Err(e) => { scan_error(&mut result, path, e); continue; }
+                        }
+                    }
+                    paths.push(path);
+                }
                 Err(e) => scan_error(&mut result, root.to_path_buf(), e),
             }
         }

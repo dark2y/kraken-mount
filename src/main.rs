@@ -17,6 +17,7 @@ mod register;
 mod scan;
 mod storage;
 mod web;
+mod compat_api;
 
 use cache::Fresh;
 use config::Settings;
@@ -606,6 +607,7 @@ fn main() {
     }
     let web_state = state.clone();
     std::thread::spawn(move || web::serve(web_state, listener));
+    compat_api::start(state.clone());
     // The web UI is up; nothing mounts until kstuff answers and ShadowMount+ is gone.
     wait_ready(&state);
     let (titles, running) = (state.titles.clone(), state.running.clone());
@@ -633,7 +635,8 @@ fn main() {
         *state.settings.lock().unwrap() = s.clone();
         state.busy.store(true, Ordering::SeqCst);
         let roots = if s.scan_paths.is_empty() { storage::default_scan_roots() } else { s.scan_paths.clone() };
-        let r = scan::scan(&roots, s.backports);
+        let manual = state.manual.lock().unwrap().clone();
+        let r = scan::scan(&roots, s.backports, &manual.paths, &manual.excluded);
         if state.paused() {
             continue;
         }
@@ -647,6 +650,7 @@ fn main() {
             state.forced.lock().unwrap().extend(keep);
         }
         publish(&state, &r);
+        state.inventory_ready.store(state.manual_valid && r.errors.is_empty(), Ordering::SeqCst);
         // A source that left the scan (USB unplugged) goes through register::mount again when back.
         registered.retain(|t| r.games.iter().any(|g| &g.title_id == t));
         // Built caches are overlaid at launch from the start, not only once the scan reaches them.
