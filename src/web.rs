@@ -116,6 +116,11 @@ impl State {
     }
 }
 
+// Playden marks its game folders with this file; its contents are not needed for display.
+fn is_playden(src: &Source) -> bool {
+    matches!(src.kind, Kind::Folder(_)) && src.path.join(".playden-title-owner").is_file()
+}
+
 fn game_json(g: &Game) -> serde_json::Value {
     let (kind, packing) = match g.src.kind {
         Kind::Pkg => ("pkg", None),
@@ -125,6 +130,7 @@ fn game_json(g: &Game) -> serde_json::Value {
     };
     serde_json::json!({
         "title_id": g.src.title_id,
+        "playden": is_playden(&g.src),
         "title_name": g.src.title_name,
         "version": g.src.version,
         "path": g.src.path.to_string_lossy(),
@@ -402,7 +408,9 @@ fn dbg_file(path: &str, query: &str) -> Reply {
 }
 
 fn api_state(state: &State) -> Vec<u8> {
-    let games: Vec<_> = state.games.lock().unwrap().iter().map(game_json).collect();
+    // Do not hold the inventory lock while checking Playden markers on disk.
+    let snapshot = state.games.lock().unwrap().clone();
+    let games: Vec<_> = snapshot.iter().map(game_json).collect();
     let all = storage::drives();
     let drives: Vec<_> = all
         .iter()
