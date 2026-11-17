@@ -283,7 +283,7 @@ pub fn https_get(url: &str, max: usize) -> std::io::Result<Vec<u8>>;
   not parsed, and a title prefix alone is not proof. Missing or inaccessible markers are not classified.
   This is a UI classification, not a security/ownership guarantee. Other sources remain in Library.
   The text input uses the browser's native keyboard/PS5 IME; arrows navigate, and the controller's
-  L2/R2 triggers step the source chips.
+  L2/R2 triggers step the source chips. No L2/R2 keycap buttons are drawn.
 - `GET /api/settings` -> settings JSON; `POST /api/settings` (JSON body) -> save, apply, rescan.
 - `GET /api/ampr` -> `{kind: "bundled"|"downloaded"|"hand"|"missing"|"error", version, updating}` of
   `ampr/libSceAmpr.sprx`; `POST /api/ampr/update` -> forced update, answered when done: 200 + result text,

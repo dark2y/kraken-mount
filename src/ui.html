@@ -116,19 +116,12 @@ button.danger:hover { background: rgba(255, 70, 70, 0.48); }
 }
 .gh-link .icon { width: 1.3rem; height: 1.3rem; }
 
-/* ---------- Filter row: L2 [chips] R2 ... storage pill ---------- */
+/* ---------- Filter row: [chips] ... storage pill ---------- */
 main { padding: 1.1rem var(--gutter) 2rem; }
 .filters { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1.3rem; }
 /* One card per drive; Internal is always the last (rightmost), extra drives grow to its left. */
 .storage { display: flex; justify-content: flex-end; gap: 0.6rem; margin-left: auto; min-width: 0; }
 .seg-wrap { display: flex; align-items: center; gap: 0.6rem; min-width: 0; flex: none; }
-/* PS5 L2 / R2 hints: dump-forge's shoulder keycaps, out of the Tab order (the triggers are the binding). */
-button.shoulder {
-  flex: none; width: 2.2rem; height: 1.55rem; padding: 0; margin: 0;
-  border-radius: 0.6rem 0.6rem 0.4rem 0.4rem;
-  color: var(--muted); font: 600 0.78rem var(--mono); letter-spacing: 0.02em;
-}
-button.shoulder:hover { color: var(--fg); }
 .count {
   display: inline-flex; align-items: center; justify-content: center;
   min-width: 1.4rem; height: 1.4rem; padding: 0 0.4rem; border-radius: 999px;
@@ -367,8 +360,6 @@ button:disabled { opacity: 0.5; cursor: default; }
 [dir="rtl"] .sheet-side .badge { left: auto; right: 1rem; }
 [dir="rtl"] .card .status-pill, [dir="rtl"] .card .running-pill { right: auto; left: 0.75rem; }
 [dir="rtl"] .storage { margin-left: 0; margin-right: auto; }
-/* The L2 keycap stays on the left and R2 on the right, like the controller's triggers. */
-[dir="rtl"] .seg-wrap { flex-direction: row-reverse; }
 [dir="rtl"] .legend span:before { margin-right: 0; margin-left: 0.45rem; }
 [dir="rtl"] .fields dd.mono, [dir="rtl"] .info p, [dir="rtl"] .sheet-head p, [dir="rtl"] code,
 [dir="rtl"] .row textarea { direction: ltr; unicode-bidi: isolate; text-align: right; }
@@ -413,9 +404,7 @@ button:disabled { opacity: 0.5; cursor: default; }
 <section id="library" role="tabpanel" aria-labelledby="tab-library">
   <div class="filters">
     <div class="seg-wrap">
-      <button class="shoulder glass" type="button" tabindex="-1" data-step="-1" aria-label="Previous filter (L2)" data-i18n-aria="prevFilter">L2</button>
       <div class="chips" id="chips" role="group" aria-label="Source type" data-i18n-aria="sourceType"></div>
-      <button class="shoulder glass" type="button" tabindex="-1" data-step="1" aria-label="Next filter (R2)" data-i18n-aria="nextFilter">R2</button>
     </div>
     <div class="storage" id="storage"></div>
   </div>
@@ -511,7 +500,7 @@ var $ = function (id) { return document.getElementById(id); };
 
 // ---- i18n: English is the source and the fallback; t(key, args) fills {name} from args ----
 // Stays as it is in every language: Kraken Mount, paths, file names, title ids, versions,
-// L2/R2, PKG/LZ4/ZSTD, ampr-emu-ng, GB/MB. A key missing in a language falls back to `en`.
+// L2/R2 triggers, PKG/LZ4/ZSTD, ampr-emu-ng, GB/MB. A key missing in a language falls back to `en`.
 // To add a translation: fill its object below with the same keys (all keys are in `en`).
 var MSG = {
   en: {
@@ -529,7 +518,7 @@ var MSG = {
     waitKstuff: 'Waiting for kstuff: it is not running yet. Games appear once it starts.', waitSmp: 'ShadowMount+ is running: stop it to use Kraken Mount. Games appear once it stops.',
     stopped: 'Kraken Mount stopped. Open the Kraken Mount tile to start it again.',
     // Library: filters, drives, cards, empty state, log
-    prevFilter: 'Previous filter (L2)', nextFilter: 'Next filter (R2)', sourceType: 'Source type',
+    sourceType: 'Source type',
     kindAll: 'All', kindFolders: 'Folders', badgeFolder: 'Folder',
     driveInternal: 'Internal', driveUsb: 'USB {n}', driveExt: 'Extended {n}',
     driveFree: 'free {free} of {total}',
@@ -610,7 +599,7 @@ var MSG = {
     stopBusy: 'Идёт игра: сначала закройте её, затем остановите Kraken Mount.',
     waitKstuff: 'Ожидание kstuff: он ещё не запущен. Игры появятся после его запуска.', waitSmp: 'Запущен ShadowMount+: остановите его, чтобы использовать Kraken Mount. Игры появятся после его остановки.',
     stopped: 'Kraken Mount остановлен. Чтобы запустить его снова, откройте плитку Kraken Mount.',
-    prevFilter: 'Предыдущий фильтр (L2)', nextFilter: 'Следующий фильтр (R2)', sourceType: 'Тип источника',
+    sourceType: 'Тип источника',
     kindAll: 'Все', kindFolders: 'Папки', badgeFolder: 'Папка',
     driveInternal: 'Внутренний', driveUsb: 'USB {n}', driveExt: 'Расширенный {n}',
     driveFree: 'свободно {free} из {total}',
@@ -688,7 +677,7 @@ var MSG = {
     stopBusy: '有游戏正在运行：请先关闭游戏，再停止 Kraken Mount。',
     waitKstuff: '正在等待 kstuff：它尚未运行。启动后游戏将会显示。', waitSmp: 'ShadowMount+ 正在运行：请停止它以使用 Kraken Mount。停止后游戏将会显示。',
     stopped: 'Kraken Mount 已停止。打开 Kraken Mount 磁贴即可再次启动。',
-    prevFilter: '上一个筛选 (L2)', nextFilter: '下一个筛选 (R2)', sourceType: '来源类型',
+    sourceType: '来源类型',
     kindAll: '全部', kindFolders: '文件夹', badgeFolder: '文件夹',
     driveInternal: '内部', driveUsb: 'USB {n}', driveExt: '扩展 {n}',
     driveFree: '可用 {free}，共 {total}',
@@ -766,7 +755,7 @@ var MSG = {
     stopBusy: 'Ein Spiel läuft: Schließen Sie es zuerst und beenden Sie dann Kraken Mount.',
     waitKstuff: 'Warte auf kstuff: Es läuft noch nicht. Die Spiele erscheinen, sobald es startet.', waitSmp: 'ShadowMount+ läuft: Beenden Sie es, um Kraken Mount zu nutzen. Die Spiele erscheinen, sobald es beendet ist.',
     stopped: 'Kraken Mount wurde beendet. Öffnen Sie die Kachel Kraken Mount, um es erneut zu starten.',
-    prevFilter: 'Vorheriger Filter (L2)', nextFilter: 'Nächster Filter (R2)', sourceType: 'Quelltyp',
+    sourceType: 'Quelltyp',
     kindAll: 'Alle', kindFolders: 'Ordner', badgeFolder: 'Ordner',
     driveInternal: 'Intern', driveUsb: 'USB {n}', driveExt: 'Erweitert {n}',
     driveFree: '{free} von {total} frei',
@@ -844,7 +833,7 @@ var MSG = {
     stopBusy: 'Hay un juego en curso: ciérralo primero y luego detén Kraken Mount.',
     waitKstuff: 'Esperando a kstuff: aún no se está ejecutando. Los juegos aparecerán cuando se inicie.', waitSmp: 'ShadowMount+ está en ejecución: detenlo para usar Kraken Mount. Los juegos aparecerán cuando se detenga.',
     stopped: 'Kraken Mount se ha detenido. Abre el icono de Kraken Mount para iniciarlo de nuevo.',
-    prevFilter: 'Filtro anterior (L2)', nextFilter: 'Filtro siguiente (R2)', sourceType: 'Tipo de origen',
+    sourceType: 'Tipo de origen',
     kindAll: 'Todos', kindFolders: 'Carpetas', badgeFolder: 'Carpeta',
     driveInternal: 'Interno', driveUsb: 'USB {n}', driveExt: 'Ampliado {n}',
     driveFree: 'libre: {free} de {total}',
@@ -922,7 +911,7 @@ var MSG = {
     stopBusy: 'Un jeu est en cours : fermez-le, puis arrêtez Kraken Mount.',
     waitKstuff: 'En attente de kstuff : il n\'est pas encore lancé. Les jeux apparaîtront dès son démarrage.', waitSmp: 'ShadowMount+ est en cours d\'exécution : arrêtez-le pour utiliser Kraken Mount. Les jeux apparaîtront dès son arrêt.',
     stopped: 'Kraken Mount est arrêté. Ouvrez la vignette Kraken Mount pour le relancer.',
-    prevFilter: 'Filtre précédent (L2)', nextFilter: 'Filtre suivant (R2)', sourceType: 'Type de source',
+    sourceType: 'Type de source',
     kindAll: 'Tous', kindFolders: 'Dossiers', badgeFolder: 'Dossier',
     driveInternal: 'Interne', driveUsb: 'USB {n}', driveExt: 'Étendu {n}',
     driveFree: '{free} libres sur {total}',
@@ -1000,7 +989,7 @@ var MSG = {
     stopBusy: 'ゲームが実行中です: 先にゲームを閉じてから Kraken Mount を停止してください。',
     waitKstuff: 'kstuff を待っています: まだ起動していません。起動するとゲームが表示されます。', waitSmp: 'ShadowMount+ が実行中です: Kraken Mount を使うには停止してください。停止するとゲームが表示されます。',
     stopped: 'Kraken Mount は停止しました。再び起動するには Kraken Mount タイルを開いてください。',
-    prevFilter: '前のフィルター (L2)', nextFilter: '次のフィルター (R2)', sourceType: 'ソースの種類',
+    sourceType: 'ソースの種類',
     kindAll: 'すべて', kindFolders: 'フォルダー', badgeFolder: 'フォルダー',
     driveInternal: '内蔵', driveUsb: 'USB {n}', driveExt: '拡張 {n}',
     driveFree: '空き {free} / {total}',
@@ -1078,7 +1067,7 @@ var MSG = {
     stopBusy: 'Há um jogo em execução: feche-o primeiro e depois pare o Kraken Mount.',
     waitKstuff: 'Aguardando o kstuff: ele ainda não está em execução. Os jogos aparecem quando ele iniciar.', waitSmp: 'O ShadowMount+ está em execução: pare-o para usar o Kraken Mount. Os jogos aparecem quando ele parar.',
     stopped: 'O Kraken Mount foi parado. Abra o bloco do Kraken Mount para iniciá-lo de novo.',
-    prevFilter: 'Filtro anterior (L2)', nextFilter: 'Próximo filtro (R2)', sourceType: 'Tipo de origem',
+    sourceType: 'Tipo de origem',
     kindAll: 'Todos', kindFolders: 'Pastas', badgeFolder: 'Pasta',
     driveInternal: 'Interno', driveUsb: 'USB {n}', driveExt: 'Estendido {n}',
     driveFree: 'livre: {free} de {total}',
@@ -1156,7 +1145,7 @@ var MSG = {
     stopBusy: 'Un gioco è in esecuzione: chiudilo prima, poi arresta Kraken Mount.',
     waitKstuff: 'In attesa di kstuff: non è ancora in esecuzione. I giochi compariranno quando si avvia.', waitSmp: 'ShadowMount+ è in esecuzione: arrestalo per usare Kraken Mount. I giochi compariranno quando si arresta.',
     stopped: 'Kraken Mount è stato arrestato. Apri il riquadro Kraken Mount per avviarlo di nuovo.',
-    prevFilter: 'Filtro precedente (L2)', nextFilter: 'Filtro successivo (R2)', sourceType: 'Tipo di sorgente',
+    sourceType: 'Tipo di sorgente',
     kindAll: 'Tutti', kindFolders: 'Cartelle', badgeFolder: 'Cartella',
     driveInternal: 'Interno', driveUsb: 'USB {n}', driveExt: 'Esteso {n}',
     driveFree: 'liberi {free} su {total}',
@@ -1234,7 +1223,7 @@ var MSG = {
     stopBusy: '게임이 실행 중입니다: 먼저 게임을 닫은 다음 Kraken Mount를 중지하세요.',
     waitKstuff: 'kstuff를 기다리는 중: 아직 실행되지 않았습니다. 실행되면 게임이 표시됩니다.', waitSmp: 'ShadowMount+가 실행 중입니다: Kraken Mount를 사용하려면 중지하세요. 중지되면 게임이 표시됩니다.',
     stopped: 'Kraken Mount가 중지되었습니다. 다시 시작하려면 Kraken Mount 타일을 여세요.',
-    prevFilter: '이전 필터 (L2)', nextFilter: '다음 필터 (R2)', sourceType: '소스 유형',
+    sourceType: '소스 유형',
     kindAll: '전체', kindFolders: '폴더', badgeFolder: '폴더',
     driveInternal: '내장', driveUsb: 'USB {n}', driveExt: '확장 {n}',
     driveFree: '{total} 중 {free} 사용 가능',
@@ -1312,7 +1301,7 @@ var MSG = {
     stopBusy: 'هناك لعبة قيد التشغيل: أغلقها أولًا، ثم أوقف Kraken Mount.',
     waitKstuff: 'في انتظار kstuff: لم يبدأ تشغيله بعد. ستظهر الألعاب عند تشغيله.', waitSmp: 'ShadowMount+ قيد التشغيل: أوقفه لاستخدام Kraken Mount. ستظهر الألعاب عند إيقافه.',
     stopped: 'توقّف Kraken Mount. افتح لوحة Kraken Mount لتشغيله مرة أخرى.',
-    prevFilter: 'الفلتر السابق (L2)', nextFilter: 'الفلتر التالي (R2)', sourceType: 'نوع المصدر',
+    sourceType: 'نوع المصدر',
     kindAll: 'الكل', kindFolders: 'المجلدات', badgeFolder: 'مجلد',
     driveInternal: 'داخلي', driveUsb: 'USB {n}', driveExt: 'موسّع {n}',
     driveFree: 'متاح {free} من {total}',
@@ -1653,7 +1642,7 @@ function setFilter(id) {
     $('grid').firstChild.focus();
 }
 function stepFilter(d) {
-  // L2/R2 (triggers and keycaps) step by screen side: the chips run right to left in RTL.
+  // L2/R2 triggers step by screen side: the chips run right to left in RTL.
   if (isRtl()) d = -d;
   var i = 0;
   KINDS.forEach(function (k, j) { if (k.id === filter) i = j; });
@@ -2095,9 +2084,6 @@ $('logtoggle').onclick = function () {
   setText(this, t(logOpen ? 'hideLog' : 'showLog'));
   if (logOpen) $('log').scrollTop = $('log').scrollHeight;
 };
-var shoulders = document.querySelectorAll('.shoulder[data-step]');
-for (var s = 0; s < shoulders.length; s++)
-  shoulders[s].onclick = function () { stepFilter(+this.getAttribute('data-step')); };
 $('modal').onclick = function (e) { if (e.target === this) closeModal(); };
 
 function cards() { return Array.prototype.slice.call(document.querySelectorAll('#grid .card')); }
