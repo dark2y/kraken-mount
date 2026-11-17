@@ -275,6 +275,11 @@ pub fn https_get(url: &str, max: usize) -> std::io::Result<Vec<u8>>;
   `{version, busy, paused, waiting:"kstuff"|"shadowmount"|null, running:[TID], games:[{title_id, title_name, version, path, kind:"pkg"|"folder", packing:"plain"|"zstd"|"lz4"|null,
   drive, size, status:"pending"|"checking"|"building"|"ready"|"error"|"duplicate", error, cache_size, cache_built, backport}],
   drives:[{mount, label, kind, total, free}], cache:{path, size, free, low_space, ampr_present}, log:[last 100 lines of the last 64 KiB]}`
+- The Library filters the last-scan inventory; it does not discover or install games. Search in the
+  header matches title name or title id, case-insensitively, and combines with the mutually exclusive
+  source-type chips. Search and chip selection persist when switching screens. Chip counts reflect
+  the search. The text input uses the browser's native keyboard/PS5 IME; arrows navigate, and the
+  controller's L2/R2 triggers step the source chips.
 - `GET /api/settings` -> settings JSON; `POST /api/settings` (JSON body) -> save, apply, rescan.
 - `GET /api/ampr` -> `{kind: "bundled"|"downloaded"|"hand"|"missing"|"error", version, updating}` of
   `ampr/libSceAmpr.sprx`; `POST /api/ampr/update` -> forced update, answered when done: 200 + result text,

@@ -100,6 +100,7 @@ button.danger:hover { background: rgba(255, 70, 70, 0.48); }
   box-shadow: 0 0.15rem 0.6rem rgba(0, 0, 0, 0.25);
 }
 .nav .seg-opt { min-width: 7.5rem; }
+.search { width: 13rem; min-width: 0; height: 2.6rem; padding: 0 1rem; border: 1px solid rgba(255,255,255,.25); border-radius: 999px; color: var(--fg); background: var(--glass); font: inherit; }
 /* Type filter: each type is its own frosted chip, with a gap between them. */
 .chips { display: flex; align-items: center; gap: 0.6rem; }
 .chips .seg-opt {
@@ -270,7 +271,8 @@ button.close .icon { width: 1.3rem; height: 1.3rem; }
     grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "brand actions" "nav nav";
   }
   .brand-row { grid-area: brand; }
-  .top-actions { grid-area: actions; }
+  .top-actions { grid-area: actions; min-width: 0; }
+  .search { width: 10rem; max-width: 35vw; }
   .topbar-in > .nav { grid-area: nav; display: flex; }
   .nav .seg-opt { -webkit-box-flex: 1; flex: 1 1 0; min-width: 0; }
   .filters, .storage { flex-wrap: wrap; }
@@ -387,6 +389,7 @@ button:disabled { opacity: 0.5; cursor: default; }
       <button class="seg-opt" role="tab" id="tab-settings" aria-selected="false" aria-controls="settings" data-view="settings" data-i18n="settings">Settings</button>
     </div>
     <div class="top-actions">
+      <input class="search" id="search" type="search" autocomplete="off" aria-label="Search games" placeholder="Search games" data-i18n-aria="searchGames" data-i18n-placeholder="searchGames">
       <button class="small" id="stop" type="button" title="Stop Kraken Mount" data-i18n-title="stopApp">
         <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 3v8"/><path d="M6.3 6.8a8 8 0 1 0 11.4 0"/></svg>
         <span class="stop-label" data-i18n="stop">Stop</span>
@@ -534,6 +537,7 @@ var MSG = {
     stError: 'Error', stDuplicate: 'Duplicate', running: 'Running',
     statusRunning: '{status} · running',
     cardAria: '{name}, {type}, {status}', cardAriaRunning: '{name}, {type}, {status}, running',
+    searchGames: 'Search games', noMatches: 'No matching games.',
     noGames: 'No games found.', noGamesType: 'No games of this type.',
     emptyCopy: 'Copy {pkg} files or game folders to {dir} (or {usb} on a USB drive), then press Rescan.',
     emptyHome: 'Each game shows up here and on the home screen once it is registered.',
@@ -614,6 +618,7 @@ var MSG = {
     stError: 'Ошибка', stDuplicate: 'Дубликат', running: 'Запущена',
     statusRunning: '{status} · запущена',
     cardAria: '{name}, {type}, {status}', cardAriaRunning: '{name}, {type}, {status}, запущена',
+    searchGames: 'Поиск игр', noMatches: 'Нет подходящих игр.',
     noGames: 'Игры не найдены.', noGamesType: 'Нет игр этого типа.',
     emptyCopy: 'Скопируйте файлы {pkg} или папки игр в {dir} (или в {usb} на USB-накопителе), затем нажмите «Пересканировать».',
     emptyHome: 'Каждая игра появится здесь и на главном экране после регистрации.',
@@ -691,6 +696,7 @@ var MSG = {
     stError: '错误', stDuplicate: '重复', running: '运行中',
     statusRunning: '{status} · 运行中',
     cardAria: '{name}，{type}，{status}', cardAriaRunning: '{name}，{type}，{status}，运行中',
+    searchGames: '搜索游戏', noMatches: '没有匹配的游戏。',
     noGames: '未找到游戏。', noGamesType: '没有此类型的游戏。',
     emptyCopy: '将 {pkg} 文件或游戏文件夹复制到 {dir}（或 USB 驱动器上的 {usb}），然后按“重新扫描”。',
     emptyHome: '每个游戏注册后都会显示在这里和主屏幕上。',
@@ -768,6 +774,7 @@ var MSG = {
     stError: 'Fehler', stDuplicate: 'Duplikat', running: 'Läuft',
     statusRunning: '{status} · läuft',
     cardAria: '{name}, {type}, {status}', cardAriaRunning: '{name}, {type}, {status}, läuft',
+    searchGames: 'Spiele suchen', noMatches: 'Keine passenden Spiele.',
     noGames: 'Keine Spiele gefunden.', noGamesType: 'Keine Spiele dieses Typs.',
     emptyCopy: 'Kopieren Sie {pkg}-Dateien oder Spielordner nach {dir} (oder {usb} auf einem USB-Laufwerk) und drücken Sie dann „Neu scannen“.',
     emptyHome: 'Jedes Spiel erscheint hier und auf dem Startbildschirm, sobald es registriert ist.',
@@ -845,6 +852,7 @@ var MSG = {
     stError: 'Error', stDuplicate: 'Duplicado', running: 'En curso',
     statusRunning: '{status} · en curso',
     cardAria: '{name}, {type}, {status}', cardAriaRunning: '{name}, {type}, {status}, en curso',
+    searchGames: 'Buscar juegos', noMatches: 'No hay juegos coincidentes.',
     noGames: 'No se encontraron juegos.', noGamesType: 'No hay juegos de este tipo.',
     emptyCopy: 'Copia archivos {pkg} o carpetas de juegos en {dir} (o en {usb} en una unidad USB) y pulsa Volver a escanear.',
     emptyHome: 'Cada juego aparece aquí y en la pantalla de inicio cuando se registra.',
@@ -922,6 +930,7 @@ var MSG = {
     stError: 'Erreur', stDuplicate: 'Doublon', running: 'En cours',
     statusRunning: '{status} · en cours',
     cardAria: '{name}, {type}, {status}', cardAriaRunning: '{name}, {type}, {status}, en cours',
+    searchGames: 'Rechercher des jeux', noMatches: 'Aucun jeu correspondant.',
     noGames: 'Aucun jeu trouvé.', noGamesType: 'Aucun jeu de ce type.',
     emptyCopy: 'Copiez des fichiers {pkg} ou des dossiers de jeux dans {dir} (ou {usb} sur une clé USB), puis appuyez sur Réanalyser.',
     emptyHome: "Chaque jeu apparaît ici et sur l'écran d'accueil une fois enregistré.",
@@ -999,6 +1008,7 @@ var MSG = {
     stError: 'エラー', stDuplicate: '重複', running: '実行中',
     statusRunning: '{status} · 実行中',
     cardAria: '{name}、{type}、{status}', cardAriaRunning: '{name}、{type}、{status}、実行中',
+    searchGames: 'ゲームを検索', noMatches: '一致するゲームはありません。',
     noGames: 'ゲームが見つかりません。', noGamesType: 'この種類のゲームはありません。',
     emptyCopy: '{pkg} ファイルまたはゲームフォルダーを {dir}（USB ドライブでは {usb}）にコピーしてから「再スキャン」を押してください。',
     emptyHome: '各ゲームは登録されるとここにもホーム画面にも表示されます。',
@@ -1076,6 +1086,7 @@ var MSG = {
     stError: 'Erro', stDuplicate: 'Duplicado', running: 'Em execução',
     statusRunning: '{status} · em execução',
     cardAria: '{name}, {type}, {status}', cardAriaRunning: '{name}, {type}, {status}, em execução',
+    searchGames: 'Buscar jogos', noMatches: 'Nenhum jogo correspondente.',
     noGames: 'Nenhum jogo encontrado.', noGamesType: 'Nenhum jogo deste tipo.',
     emptyCopy: 'Copie arquivos {pkg} ou pastas de jogos para {dir} (ou {usb} em um drive USB) e pressione Escanear de novo.',
     emptyHome: 'Cada jogo aparece aqui e na tela inicial assim que é registrado.',
@@ -1153,6 +1164,7 @@ var MSG = {
     stError: 'Errore', stDuplicate: 'Duplicato', running: 'In esecuzione',
     statusRunning: '{status} · in esecuzione',
     cardAria: '{name}, {type}, {status}', cardAriaRunning: '{name}, {type}, {status}, in esecuzione',
+    searchGames: 'Cerca giochi', noMatches: 'Nessun gioco corrispondente.',
     noGames: 'Nessun gioco trovato.', noGamesType: 'Nessun gioco di questo tipo.',
     emptyCopy: 'Copia file {pkg} o cartelle di giochi in {dir} (o in {usb} su un\'unità USB), poi premi Ripeti scansione.',
     emptyHome: 'Ogni gioco compare qui e nella schermata Home una volta registrato.',
@@ -1230,6 +1242,7 @@ var MSG = {
     stError: '오류', stDuplicate: '중복', running: '실행 중',
     statusRunning: '{status} · 실행 중',
     cardAria: '{name}, {type}, {status}', cardAriaRunning: '{name}, {type}, {status}, 실행 중',
+    searchGames: '게임 검색', noMatches: '일치하는 게임이 없습니다.',
     noGames: '게임을 찾을 수 없습니다.', noGamesType: '이 유형의 게임이 없습니다.',
     emptyCopy: '{pkg} 파일이나 게임 폴더를 {dir}(USB 드라이브에서는 {usb})에 복사한 다음 다시 스캔을 누르세요.',
     emptyHome: '각 게임은 등록되면 여기와 홈 화면에 나타납니다.',
@@ -1307,6 +1320,7 @@ var MSG = {
     stError: 'خطأ', stDuplicate: 'مكرر', running: 'قيد التشغيل',
     statusRunning: '{status} · قيد التشغيل',
     cardAria: '{name}، {type}، {status}', cardAriaRunning: '{name}، {type}، {status}، قيد التشغيل',
+    searchGames: 'البحث عن الألعاب', noMatches: 'لا توجد ألعاب مطابقة.',
     noGames: 'لم يُعثر على ألعاب.', noGamesType: 'لا توجد ألعاب من هذا النوع.',
     emptyCopy: 'انسخ ملفات {pkg} أو مجلدات الألعاب إلى {dir} (أو {usb} على محرك USB)، ثم اضغط إعادة المسح.',
     emptyHome: 'تظهر كل لعبة هنا وعلى الشاشة الرئيسية بعد تسجيلها.',
@@ -1428,6 +1442,8 @@ function applyStatic() {
   }
   list = document.querySelectorAll('[data-i18n-aria]');
   for (i = 0; i < list.length; i++) list[i].setAttribute('aria-label', t(list[i].getAttribute('data-i18n-aria')));
+  list = document.querySelectorAll('[data-i18n-placeholder]');
+  for (i = 0; i < list.length; i++) list[i].placeholder = t(list[i].getAttribute('data-i18n-placeholder'));
   list = document.querySelectorAll('[data-i18n-title]');
   for (i = 0; i < list.length; i++) list[i].title = t(list[i].getAttribute('data-i18n-title'));
 }
@@ -1598,9 +1614,13 @@ function updateCover(c, g) {
   c.status = g.status;
 }
 
+function matchesSearch(g) {
+  var q = $('search').value.trim().toLowerCase();
+  return !q || String(gameName(g)).toLowerCase().indexOf(q) !== -1 || String(g.title_id).toLowerCase().indexOf(q) !== -1;
+}
 function renderChips(games) {
   var counts = { all: 0, pkg: 0, folder: 0, lz4: 0, zstd: 0 };
-  games.forEach(function (g) { if (g && g.title_id) { counts.all++; counts[gameKind(g)]++; } });
+  games.forEach(function (g) { if (g && g.title_id && matchesSearch(g)) { counts.all++; counts[gameKind(g)]++; } });
   var box = $('chips');
   KINDS.forEach(function (kind, i) {
     var b = box.children[i];
@@ -1702,7 +1722,7 @@ function renderGrid(games) {
   var grid = $('grid'), seen = {}, count = 0;
   var focus = document.activeElement, focusKey = focus && focus.getAttribute ? focus.getAttribute('data-key') : null;
   games.forEach(function (g) {
-    if (!g || !g.title_id || (filter !== 'all' && gameKind(g) !== filter)) return;
+    if (!g || !g.title_id || !matchesSearch(g) || (filter !== 'all' && gameKind(g) !== filter)) return;
     var id = gameId(g);
     if (seen[id]) return;
     seen[id] = true;
@@ -1720,7 +1740,7 @@ function renderGrid(games) {
   var empty = $('empty'), any = games.some(function (g) { return g && g.title_id; });
   // While start-up waits (kstuff, ShadowMount+) the banner explains the empty library.
   empty.hidden = count > 0 || !!(state && state.waiting);
-  setText(empty.querySelector('h2'), t(any ? 'noGamesType' : 'noGames'));
+  setText(empty.querySelector('h2'), t(any ? ($('search').value.trim() ? 'noMatches' : 'noGamesType') : 'noGames'));
   var paragraphs = empty.querySelectorAll('p');
   for (var i = 0; i < paragraphs.length; i++) paragraphs[i].hidden = any;
   if (focusKey && document.activeElement === document.body) {
@@ -2042,11 +2062,14 @@ function setView(v) {
   for (var i = 0; i < tabs.length; i++) {
     var on = tabs[i].getAttribute('data-view') === v;
     tabs[i].setAttribute('aria-selected', String(on));
-    $(tabs[i].getAttribute('aria-controls')).hidden = !on;
+    if (tabs[i].getAttribute('data-view') === 'settings') $('settings').hidden = !on;
   }
+  $('library').hidden = v === 'settings';
+  $('search').hidden = v === 'settings';
   if (opening) loadSettings();
-  else if (v === 'library') settingsRequest++;
+  else if (v !== 'settings') { settingsRequest++; if (state) { renderChips(state.games || []); renderGrid(state.games || []); } }
 }
+$('search').addEventListener('input', function () { if (state) { renderChips(state.games || []); renderGrid(state.games || []); } });
 var tabs = document.querySelectorAll('.nav .seg-opt');
 for (var i = 0; i < tabs.length; i++)
   tabs[i].onclick = function () { setView(this.getAttribute('data-view')); };
@@ -2104,14 +2127,14 @@ function moveInSeg(btn, key) {
     else if (seg.id !== 'chips') moveInTop(btn, key);
   } else if (seg.id === 'chips') {
     if (key === 'ArrowDown' && cards().length) cards()[0].focus();
-    if (key === 'ArrowUp') document.querySelector('.nav [aria-selected="true"]').focus();
+    if (key === 'ArrowUp') $('search').focus();
   } else if (key === 'ArrowDown') {
-    if ($('library').hidden) fields()[0].focus(); else focusChip();
+    if ($('library').hidden) fields()[0].focus(); else $('search').focus();
   }
 }
 // The top row: screen tabs, then Stop and GitHub.
 function moveInTop(t, key) {
-  var row = Array.prototype.slice.call(document.querySelectorAll('.topbar .nav .seg-opt, .topbar .top-actions button, .topbar .top-actions a'));
+  var row = Array.prototype.slice.call(document.querySelectorAll('.topbar .nav .seg-opt, .topbar .top-actions input:not([hidden]), .topbar .top-actions button, .topbar .top-actions a'));
   var j = row.indexOf(t) + (key === 'ArrowLeft' ? -1 : 1);
   if (row[j]) row[j].focus();
 }
@@ -2193,6 +2216,7 @@ document.addEventListener('keydown', function (e) {
   // PlayStation uses unconsumed arrows to move its native cursor and open the text IME.
   if (!arrow || PS) return;
   if ($('settings').contains(t)) { if (moveInSettings(t, k)) e.preventDefault(); return; }
+  if (t === $('search') && (k === 'ArrowUp' || k === 'ArrowDown')) { e.preventDefault(); if (k === 'ArrowUp') document.querySelector('.nav [aria-selected="true"]').focus(); else focusChip(); return; }
   if (typing) return;
   if (t.classList.contains('card')) { e.preventDefault(); moveInGrid(t, k); }
   else if (t.classList.contains('seg-opt')) { e.preventDefault(); moveInSeg(t, k); }
@@ -2201,7 +2225,7 @@ document.addEventListener('keydown', function (e) {
   }
   else if (k === 'ArrowDown' && document.querySelector('.topbar').contains(t)) {
     e.preventDefault();
-    if ($('library').hidden) fields()[0].focus(); else focusChip();
+    if ($('library').hidden) fields()[0].focus(); else $('search').focus();
   }
 });
 document.addEventListener('focusin', function (e) {
