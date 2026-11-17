@@ -1489,7 +1489,7 @@ var LOOPBACK = (location.hostname === '127.0.0.1' || location.hostname === 'loca
 var stopped = false, launchTried = false;
 var KINDS = [
   { id: 'all', key: 'kindAll' }, { id: 'pkg', label: 'PKG' }, { id: 'folder', key: 'kindFolders' },
-  { id: 'lz4', label: 'LZ4' }, { id: 'zstd', label: 'ZSTD' }
+  { id: 'lz4', label: 'LZ4' }, { id: 'zstd', label: 'ZSTD' }, { id: 'playden', label: 'Playden' }
 ];
 function kindLabel(kind) { return kind.key ? t(kind.key) : kind.label; }
 var LABEL = { pending: 'stPending', checking: 'stChecking', building: 'stBuilding', ready: 'stReady', error: 'stError', duplicate: 'stDuplicate' };
@@ -1619,8 +1619,8 @@ function matchesSearch(g) {
   return !q || String(gameName(g)).toLowerCase().indexOf(q) !== -1 || String(g.title_id).toLowerCase().indexOf(q) !== -1;
 }
 function renderChips(games) {
-  var counts = { all: 0, pkg: 0, folder: 0, lz4: 0, zstd: 0 };
-  games.forEach(function (g) { if (g && g.title_id && matchesSearch(g)) { counts.all++; counts[gameKind(g)]++; } });
+  var counts = { all: 0, pkg: 0, folder: 0, lz4: 0, zstd: 0, playden: 0 };
+  games.forEach(function (g) { if (g && g.title_id && matchesSearch(g)) { counts.all++; counts[gameKind(g)]++; if (g.playden === true) counts.playden++; } });
   var box = $('chips');
   KINDS.forEach(function (kind, i) {
     var b = box.children[i];
@@ -1722,7 +1722,7 @@ function renderGrid(games) {
   var grid = $('grid'), seen = {}, count = 0;
   var focus = document.activeElement, focusKey = focus && focus.getAttribute ? focus.getAttribute('data-key') : null;
   games.forEach(function (g) {
-    if (!g || !g.title_id || !matchesSearch(g) || (filter !== 'all' && gameKind(g) !== filter)) return;
+    if (!g || !g.title_id || !matchesSearch(g) || (filter === 'playden' ? g.playden !== true : filter !== 'all' && gameKind(g) !== filter)) return;
     var id = gameId(g);
     if (seen[id]) return;
     seen[id] = true;
@@ -1740,7 +1740,7 @@ function renderGrid(games) {
   var empty = $('empty'), any = games.some(function (g) { return g && g.title_id; });
   // While start-up waits (kstuff, ShadowMount+) the banner explains the empty library.
   empty.hidden = count > 0 || !!(state && state.waiting);
-  setText(empty.querySelector('h2'), t(any ? ($('search').value.trim() ? 'noMatches' : 'noGamesType') : 'noGames'));
+  setText(empty.querySelector('h2'), t(any ? (filter === 'playden' || $('search').value.trim() ? 'noMatches' : 'noGamesType') : 'noGames'));
   var paragraphs = empty.querySelectorAll('p');
   for (var i = 0; i < paragraphs.length; i++) paragraphs[i].hidden = any;
   if (focusKey && document.activeElement === document.body) {
