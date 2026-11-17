@@ -1499,6 +1499,12 @@ function fmtSize(bytes) {
   if (n >= 1073741824) return (n / 1073741824).toFixed(2) + ' GB';
   return (n / 1048576).toFixed(n >= 104857600 ? 0 : 1) + ' MB';
 }
+// Drive pill capacities: whole GB, rounded up, so the used share reads as at least what it is.
+function fmtCapacity(bytes) {
+  var n = Number(bytes) || 0;
+  if (n >= 1073741824) return Math.ceil(n / 1073741824) + ' GB';
+  return Math.ceil(n / 1048576) + ' MB';
+}
 function gb(bytes) { return ((Number(bytes) || 0) / 1073741824).toFixed(1) + ' GB'; }
 function fmtTime(secs) { return secs ? new Date(secs * 1000).toLocaleString(dateLocale()) : t('notBuilt'); }
 // text: a function that renders the banner's text (kept for a language switch); omitted keeps the last one.
@@ -1672,7 +1678,7 @@ function renderStorage(drives) {
     var used = d.total ? Math.max(0, Math.min(100, 100 * (d.total - d.free) / d.total)) : 0;
     setText(pill.children[0], driveLabel(d.mount));
     pill.children[1].firstChild.style.width = used.toFixed(1) + '%';
-    setText(pill.children[2], t('driveFree', { free: fmtSize(d.free), total: fmtSize(d.total) }));
+    setText(pill.children[2], t('driveFree', { free: fmtCapacity(d.free), total: fmtCapacity(d.total) }));
   });
 }
 function makeCard(id) {
