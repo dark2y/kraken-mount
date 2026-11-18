@@ -58,7 +58,7 @@ fn errno() -> i32 {
     io::Error::last_os_error().raw_os_error().unwrap_or(0)
 }
 
-fn c_field(buf: &[libc::c_char]) -> String {
+pub(crate) fn c_field(buf: &[libc::c_char]) -> String {
     let bytes: Vec<u8> = buf.iter().take_while(|&&c| c != 0).map(|&c| c as u8).collect();
     String::from_utf8_lossy(&bytes).into_owned()
 }
@@ -868,7 +868,11 @@ impl Watcher {
             }
         }
         for name in done {
-            self.sessions.remove(&name);
+            if let Some(s) = self.sessions.remove(&name) {
+                // SMP sm_game_lifecycle.c: the system rewrites snd0info while a title runs.
+                // On its own thread: a busy app.db must not hold the watcher up to 3 s.
+                crate::register::spawn_snd0info(&s.tid, 0);
+            }
         }
     }
 }
