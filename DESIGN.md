@@ -220,6 +220,7 @@ outside `ampr/`). HTTPS goes through the console's sceHttp/sceSsl with 4 built-i
 Running game: while `launch::watch` reports a live session (`running`), the loop does no
 scan/build/register/purge (a game starting mid-scan stops the scan before the next title);
 rescan/rebuild/purge requests stay queued and run after the game exits (2 s poll).
+A game cache build or rebuild sends a toast with its title when building starts, subject to `notify`.
 Toasts: `sceNotificationSend` system toast (dump-forge/SMP JSON, icon `/user/data/krakenmount/notify-icon.png`),
 the old `sceKernelSendNotificationRequest` only as fallback. Toast texts (`src/i18n.rs`) follow the console language
 (`sceSystemServiceParamGetInt` lang, read per toast; dump-forge's 11: en ru zh de es fr ja pt it ko ar), English when it

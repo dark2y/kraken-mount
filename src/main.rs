@@ -96,6 +96,7 @@ fn build_and_register(state: &State, s: &Settings, src: &Source, fresh: &Fresh, 
             Fresh::Fresh | Fresh::Fakelib(_) | Fresh::Moved(_) => log!("{tid}: rebuild forced"),
         }
         state.update(&src.path, |g| g.status = "building");
+        toast(s, &i18n::building(i18n::lang(), &src.title_name));
         check_space(state, s);
         let r = cache::build(src, s);
         check_space(state, s);

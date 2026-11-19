@@ -158,6 +158,23 @@ pub fn cannot_create(l: Lang, dir: &str, err: &str) -> String {
     }
 }
 
+/// A game's cache build or rebuild is starting.
+pub fn building(l: Lang, name: &str) -> String {
+    match l {
+        Lang::En => format!("Building {name}"),
+        Lang::Ru => format!("Создание кэша для {name}"),
+        Lang::Zh => format!("正在构建 {name} 的缓存"),
+        Lang::De => format!("Cache für {name} wird erstellt"),
+        Lang::Es => format!("Creando caché para {name}"),
+        Lang::Fr => format!("Création du cache pour {name}"),
+        Lang::Ja => format!("{name} のキャッシュを作成中"),
+        Lang::Pt => format!("Criando cache para {name}"),
+        Lang::It => format!("Creazione della cache per {name}"),
+        Lang::Ko => format!("{name} 캐시 생성 중"),
+        Lang::Ar => format!("جارٍ إنشاء ذاكرة التخزين المؤقت للعبة {name}"),
+    }
+}
+
 /// A game was newly registered on the home screen.
 pub fn registered(l: Lang, name: &str) -> String {
     match l {
